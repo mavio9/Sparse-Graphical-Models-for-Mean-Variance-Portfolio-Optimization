@@ -22,7 +22,7 @@ def get_data(tickers, start_date, end_date, min_coverage, fill_nan, save):
         pd.DataFrame: Cleaned daily returns for all qualified assets.
     """
     print("Downloading data from Yahoo Finance...")
-    data = yf.download(tickers, start=start_date, end=end_date, auto_adjust=False)['Close']
+    data = yf.download(tickers, start=start_date, end=end_date, auto_adjust=True)['Close']
 
     if isinstance(data, pd.Series):
         data = data.to_frame()
@@ -52,7 +52,7 @@ def get_data(tickers, start_date, end_date, min_coverage, fill_nan, save):
 
 
 
-def glasso(alpha, returns_df, save_outputs):
+def glasso(alpha, returns_df, save_outputs, max_iter):
     """
     Graphical Lasso covariance estimation suitable for Markowitz optimization.
     """
@@ -70,7 +70,7 @@ def glasso(alpha, returns_df, save_outputs):
         emp_cov,
         alpha=alpha,
         tol=1e-4,
-        max_iter=1000
+        max_iter=max_iter
     )
 
     cov_df = pd.DataFrame(
