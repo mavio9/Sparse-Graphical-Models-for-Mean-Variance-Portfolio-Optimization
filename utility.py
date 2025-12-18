@@ -52,23 +52,25 @@ def get_data(tickers, start_date, end_date, min_coverage, fill_nan, save):
 
 
 
-def glasso(alpha, returns_df, save_outputs=False):
+def glasso(alpha, returns_df, save_outputs):
     """
     Graphical Lasso covariance estimation suitable for Markowitz optimization.
     """
 
     # Convert to numpy (demeaned automatically by Ledoit-Wolf)
     X = returns_df.values
-
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
     # Ledoit–Wolf covariance (correct scale)
-    emp_cov, _ = ledoit_wolf(X, assume_centered=False)
+    emp_cov, _ = ledoit_wolf(X_scaled, assume_centered=True)
 
     # Graphical Lasso
     cov_matrix, prec_matrix = graphical_lasso(
         emp_cov,
         alpha=alpha,
         tol=1e-4,
-        max_iter=100
+        max_iter=1000
     )
 
     cov_df = pd.DataFrame(
