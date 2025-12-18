@@ -53,40 +53,31 @@ def get_data(tickers, start_date, end_date, min_coverage, fill_nan, save):
 
 
 def glasso(alpha, returns_df, save_outputs, max_iter):
-    """
-    Graphical Lasso covariance estimation suitable for Markowitz optimization.
-    """
-
-    # Convert to numpy (demeaned automatically by Ledoit-Wolf)
+    
     X = returns_df.values
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    
-    # Ledoit–Wolf covariance (correct scale)
+
     emp_cov, _ = ledoit_wolf(X_scaled, assume_centered=True)
 
-    # Graphical Lasso
-    cov_matrix, prec_matrix = graphical_lasso(
+    cov_z, prec_z = graphical_lasso(
         emp_cov,
         alpha=alpha,
         tol=1e-4,
         max_iter=max_iter
     )
 
-    cov_df = pd.DataFrame(
-        cov_matrix,
-        index=returns_df.columns,
-        columns=returns_df.columns
-    )
+    # --- Un-standardize back to raw-return units ---
+    s = scaler.scale_                 # per-asset std
+    D = np.diag(s)
+    Dinv = np.diag(1.0 / s)
 
-    prec_df = pd.DataFrame(
-        prec_matrix,
-        index=returns_df.columns,
-        columns=returns_df.columns
-    )
+    cov_raw = D @ cov_z @ D
+    prec_raw = Dinv @ prec_z @ Dinv
 
     if save_outputs:
-        cov_df.to_csv(f"covariance_using_return_alpha={alpha}.csv")
-        prec_df.to_csv(f"precision_using_return_alpha={alpha}.csv")
+        pd.DataFrame(cov_raw, index=returns_df.columns, columns=returns_df.columns).to_csv(f"covariance_raw_alpha={alpha}.csv")
+        pd.DataFrame(prec_raw, index=returns_df.columns, columns=returns_df.columns).to_csv(f"precision_raw_alpha={alpha}.csv")
+        
 
-    return cov_matrix, prec_matrix
+    return cov_raw, prec_raw
